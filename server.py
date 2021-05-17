@@ -26,11 +26,12 @@ class ServerThread(Thread):
         "localhost.com",
     ]
 
-    def __init__(self,sock,msg_q,**kwargs):
+    def __init__(self,sock,msg_q,log_q,**kwargs):
         super().__init__(**kwargs)
         self.sock = sock
         self.hostname = socket.gethostname() + ".lan"
         self.q = msg_q
+        self.log_q = log_q
         self.df = None
         self.state = ServerState.INIT
         self.WELCOME = "220 {} SMTP ready\n".format(self.hostname)
@@ -50,6 +51,7 @@ class ServerThread(Thread):
             msg = self.sock.recv(4096)
             if not msg:
                 break
+            self.log("S: Received: " + str(msg, encoding='ascii'))
             reply = self.handle_request(msg) + '\r\n'
             if not self.noreply:
                 self.sock.sendall(self.pack(reply))
@@ -59,6 +61,9 @@ class ServerThread(Thread):
 
     def pack(self,s):
         return bytes(s, encoding='ascii')
+
+    def log(self,entry):
+        self.log_q.put(entry)
 
     def handle_request(self,msg):
         msg = str(msg, encoding='ascii')
@@ -134,14 +139,14 @@ class ServerThread(Thread):
 
     def data_handler(self,msg,rtype):
         reply = self.SYN_ERR
-        self.noreply = True
-        if rtype == RequestType.TERM:
+        self.df.add_data(msg)
+        if rtype == RequestType.LINE:
+            self.noreply = True
+        elif rtype == RequestType.TERM:
             self.noreply = False
             self.q.put(self.df)
             self.state = ServerState.INIT
             reply = self.OK + "; Queue indexing not supported"
-        elif rtype == RequestType.LINE:
-            self.df.add_data(msg)
         return reply
 
 

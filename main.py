@@ -4,12 +4,20 @@ from server import ServerThread
 from client import ClientThread
 from threading import Thread
 from time import sleep
+from typedefs import MailDataFrame
 
 def logger(q):
     while True:
         sleep(0.05)
         if not q.empty():
-            print(q.get())
+            r = q.get()
+            if isinstance(r, MailDataFrame):
+                print(r.data)
+            else:
+                for i in range(2):
+                    if r[-i] in ["\r", "\n"]:
+                        r = r[:-i]
+                print(r)
             
             
 HOST = '127.0.0.1'
@@ -29,6 +37,6 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
     while True:
         s.listen(BACKLOG)
         cl_skt,addr = s.accept()
-        t = ServerThread(cl_skt, msg_q, daemon=True)
+        t = ServerThread(cl_skt, msg_q, log_q, daemon=True)
         t.start()
         i = i + 1

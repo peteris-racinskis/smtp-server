@@ -17,10 +17,8 @@ class ClientThread(Thread):
             self.data,
             self.quit
         ]
-        self.log("init done")
     
     def run(self):
-        self.log("running")
         while True:
             if self.q.empty():
                 sleep(0.1)
@@ -36,10 +34,10 @@ class ClientThread(Thread):
     def send_mail(self,df):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                self.log("connecting...")
+                self.log("C: connecting...")
                 s.connect(self.dest)
                 reply = s.recv(1024)
-                self.log("reply = " + str(reply,encoding='ascii'))
+                self.log("C: reply = " + str(reply,encoding='ascii'))
                 if reply:
                     res = str(reply,encoding='ascii').startswith('220')
                 procedure = 0
@@ -50,19 +48,19 @@ class ClientThread(Thread):
             self.log(e)
     
     def status_ok(self,msg):
-        self.log("received: " + msg)
+        self.log("C: received: " + msg)
         return msg.startswith('250')
     
     def data_reply(self,msg):
-        self.log("received: " + msg)
+        self.log("C: received: " + msg)
         return msg.startswith('354')
     
     def quit_reply(self,msg):
-        self.log("received: " + msg)
+        self.log("C: received: " + msg)
         return msg.startswith('221')
 
     def send_msg(self, s, msg, data=False, quit=False):
-        self.log("sending: " + msg)
+        self.log("C:sending: " + msg)
         msg = bytes(msg, encoding='ascii')
         s.sendall(msg)
         reply = s.recv(1024)
